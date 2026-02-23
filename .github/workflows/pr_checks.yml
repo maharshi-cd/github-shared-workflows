@@ -78,5 +78,3 @@ jobs:
 
       - name: 🧾 Validate Commit Messages
         uses: webiny/action-conventional-commits@v1.3.1
-        with:
-          allowed-commit-types: ${{ inputs.types }}
