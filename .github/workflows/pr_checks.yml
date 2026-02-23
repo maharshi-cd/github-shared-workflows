@@ -6,7 +6,18 @@ on:
       types:
         required: false
         type: string
-        default: 'fix,feat,docs,ci,chore,test,refactor,style,perf,build,revert'
+        default: |
+          fix
+          feat
+          docs
+          ci
+          chore
+          test
+          refactor
+          style
+          perf
+          build
+          revert
       requireScope:
         required: false
         type: boolean
@@ -64,12 +75,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}  # ✅ PR head ref
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: 🧾 Validate Commit Messages
-        uses: webiny/action-conventional-commits@v1.3.0
+        uses: webiny/action-conventional-commits@v1.3.1
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}         # ✅ required for API calls
-          allowed-commit-types: ${{ inputs.types }}         # ✅ correct input name + comma-separated value
-
+          subject_case: false
+          types: ${{ inputs.types }}
 ...
