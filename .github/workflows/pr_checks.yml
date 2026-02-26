@@ -69,15 +69,57 @@ jobs:
           fi
 
   validate-commits:
+    name: Validate Commit Messages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: Validate Commit Messages
-        uses: webiny/action-conventional-commits@v1.3.0
-        with:
-          subject_case: false
-          types: ${{ inputs.types }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Build regex from types input
+          TYPES="${{ inputs.types }}"
+          TYPES_REGEX=$(echo "$TYPES" | tr '\n' '|' | sed 's/|$//' | sed 's/||*/|/g' | tr -d ' ')
+          PATTERN="^(${TYPES_REGEX})(\([^)]+\))?(!)?: .+"
+
+          echo "ℹ️ Checking commit messages against pattern: $PATTERN"
+          echo ""
+
+          # Fetch all PR commits via GitHub API
+          COMMITS=$(gh api "repos/$GITHUB_REPOSITORY/pulls/${{ github.event.pull_request.number }}/commits" \
+            --jq '.[].commit.message | split("\n")[0]')
+
+          FAILED=0
+          while IFS= read -r msg; do
+            # Skip empty lines and merge commits
+            [ -z "$msg" ] && continue
+            echo "$msg" | grep -qE "^Merge " && echo "  ⏭️ Skipped (merge): $msg" && continue
+
+            if echo "$msg" | grep -qPi "$PATTERN"; then
+              echo "  ✅ $msg"
+            else
+              echo "  🚩 $msg"
+              FAILED=1
+            fi
+          done <<< "$COMMITS"
+
+          echo ""
+          if [ "$FAILED" -ne 0 ]; then
+            echo "::error::🚫 Some commit messages don't follow the Conventional Commits specification."
+            exit 1
+          fi
+          echo "✅ All commits follow the Conventional Commits specification."
+
+
+  # validate-commits:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
+
+  #     - name: Validate Commit Messages
+  #       uses: webiny/action-conventional-commits@v1.3.0
+  #       with:
+  #         subject_case: false
+  #         types: ${{ inputs.types }}
 ...
